@@ -1,0 +1,41 @@
+# Visual Studio / C++
+.vs/
+*.vcxproj.user
+*.opensdf
+*.sdf
+*.suo
+*.ipch
+*.obj
+*.pdb
+*.idb
+*.log
+*.tlog
+*.cache
+*.db
+*.aps
+*.ilk
+*.user
+*.psess
+*.ncb
+*.exe
+*.dll
+*.lib
+*.exp
+*.bsc
+*.ipdb
+*.iobj
+*.pch
+
+# Build output
+/Debug/
+/Release/
+/x64/
+/bin/
+/bin64/
+/out/
+/build/
+/packages/
+
+# Misc
+Thumbs.db
+.DS_Store
