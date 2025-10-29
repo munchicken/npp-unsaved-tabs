@@ -112,13 +112,13 @@ int getUnsavedTabsCount()
     int currentIndex = (int)::SendMessage(nppData._nppHandle, NPPM_GETCURRENTDOCINDEX, 0, 0);
 
     // Get total number of open documents
-    int nbDocs = (int)::SendMessage(nppData._nppHandle, NPPM_GETNBOPENFILES, 0, ALL_OPEN_FILES);
+    int nbDocs = (int)::SendMessage(nppData._nppHandle, NPPM_GETNBOPENFILES, 0, PRIMARY_VIEW);
     int unsavedCount = 0;
 
     for (int i = 0; i < nbDocs; ++i)
     {
         // Activate document i
-        ::SendMessage(nppData._nppHandle, NPPM_ACTIVATEDOC, MAIN_VIEW, i);
+        ::SendMessage(nppData._nppHandle, NPPM_ACTIVATEDOC, PRIMARY_VIEW, i);
 
         // Query Scintilla’s modify flag
         LRESULT modified = ::SendMessage(nppData._scintillaMainHandle, SCI_GETMODIFY, 0, 0);
