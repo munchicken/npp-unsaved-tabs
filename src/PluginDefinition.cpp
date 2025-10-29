@@ -19,9 +19,11 @@
 #include "menuCmdID.h"
 #include "Notepad_plus_msgs.h"
 #include "Scintilla.h"
-#include "Sci_Position.h"
 #include <windows.h>
 #include <tchar.h>
+#include <unordered_set>
+
+std::unordered_set<INT_PTR> g_dirty;   // Track all unsaved buffers
 
 //
 // The plugin data that Notepad++ needs
@@ -106,31 +108,50 @@ void cmdShowUnsavedTabsTest()
         MB_OK | MB_ICONINFORMATION);
 }
 
+// ---------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------
+
+static INT_PTR getBufferId()
+{
+    return (INT_PTR)::SendMessage(nppData._nppHandle, NPPM_GETCURRENTBUFFERID, 0, 0);
+}
+
 int getUnsavedTabsCount()
 {
-    // Remember which document is active
-    int currentIndex = (int)::SendMessage(nppData._nppHandle, NPPM_GETCURRENTDOCINDEX, 0, 0);
-
-    // Get total number of open documents
-    int nbDocs = (int)::SendMessage(nppData._nppHandle, NPPM_GETNBOPENFILES, 0, PRIMARY_VIEW);
-    int unsavedCount = 0;
-
-    for (int i = 0; i < nbDocs; ++i)
-    {
-        // Activate document i
-        ::SendMessage(nppData._nppHandle, NPPM_ACTIVATEDOC, PRIMARY_VIEW, i);
-
-        // Query Scintilla’s modify flag
-        LRESULT modified = ::SendMessage(nppData._scintillaMainHandle, SCI_GETMODIFY, 0, 0);
-        if (modified)
-            ++unsavedCount;
-    }
-
-    // Restore the originally active doc
-    ::SendMessage(nppData._nppHandle, NPPM_ACTIVATEDOC, MAIN_VIEW, currentIndex);
-
-    return unsavedCount;
+    return (int)g_dirty.size();
 }
+
+// ---------------------------------------------------------------------
+// Notifications - Handle notifications sent from the exported beNotified()
+// ---------------------------------------------------------------------
+
+void handleUnsavedTabsNotifications(SCNotification* notify)
+{
+    switch (notify->nmhdr.code)
+    {
+    case NPPN_SNAPSHOTDIRTYFILELOADED:   // red-disk unsaved files restored
+        g_dirty.insert(notify->nmhdr.idFrom);
+        break;
+
+    case SCN_SAVEPOINTLEFT:              // user typed -> dirty
+        g_dirty.insert(getBufferId());
+        break;
+
+    case SCN_SAVEPOINTREACHED:           // user saved -> clean
+    case NPPN_FILESAVED:
+    case NPPN_FILECLOSED:
+        g_dirty.erase(getBufferId());
+        break;
+
+    default:
+        break;
+    }
+}
+
+// ---------------------------------------------------------------------
+// Core command
+// ---------------------------------------------------------------------
 
 void cmdShowUnsavedTabsCount()
 {
