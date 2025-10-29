@@ -36,7 +36,7 @@ const TCHAR NPP_PLUGIN_NAME[] = TEXT("Unsaved Tabs");
 //
 // Here define the number of your plugin commands
 //
-const int nbFunc = 1;
+const int nbFunc = 2;
 
 
 //
@@ -71,5 +71,7 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 // Your plugin command functions
 //
 void cmdShowUnsavedTabsTest();
+void cmdShowUnsavedTabsCount();
+int  getUnsavedTabsCount();
 
 #endif //PLUGINDEFINITION_H

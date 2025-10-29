@@ -17,7 +17,11 @@
 
 #include "PluginDefinition.h"
 #include "menuCmdID.h"
+#include "Notepad_plus_msgs.h"
+#include "Scintilla.h"
+#include "Sci_Position.h"
 #include <windows.h>
+#include <tchar.h>
 
 //
 // The plugin data that Notepad++ needs
@@ -59,7 +63,8 @@ void commandMenuInit()
     //            ShortcutKey *shortcut,          // optional. Define a shortcut to trigger this command
     //            bool check0nInit                // optional. Make this menu item be checked visually
     //            );
-    setCommand(0, TEXT("Show Unsaved Tabs…"), cmdShowUnsavedTabsTest, nullptr, false);
+    setCommand(0, TEXT("Show Unsaved Tabs (Test)"), cmdShowUnsavedTabsTest, nullptr, false);
+    setCommand(1, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
 }
 
 //
@@ -99,4 +104,40 @@ void cmdShowUnsavedTabsTest()
         TEXT("Plugin loaded successfully!"),
         TEXT("Unsaved Tabs"),
         MB_OK | MB_ICONINFORMATION);
+}
+
+int getUnsavedTabsCount()
+{
+    // Remember which document is active
+    int currentIndex = (int)::SendMessage(nppData._nppHandle, NPPM_GETCURRENTDOCINDEX, 0, 0);
+
+    // Get total number of open documents
+    int nbDocs = (int)::SendMessage(nppData._nppHandle, NPPM_GETNBOPENFILES, 0, ALL_OPEN_FILES);
+    int unsavedCount = 0;
+
+    for (int i = 0; i < nbDocs; ++i)
+    {
+        // Activate document i
+        ::SendMessage(nppData._nppHandle, NPPM_ACTIVATEDOC, MAIN_VIEW, i);
+
+        // Query Scintilla’s modify flag
+        LRESULT modified = ::SendMessage(nppData._scintillaMainHandle, SCI_GETMODIFY, 0, 0);
+        if (modified)
+            ++unsavedCount;
+    }
+
+    // Restore the originally active doc
+    ::SendMessage(nppData._nppHandle, NPPM_ACTIVATEDOC, MAIN_VIEW, currentIndex);
+
+    return unsavedCount;
+}
+
+void cmdShowUnsavedTabsCount()
+{
+    int count = getUnsavedTabsCount();
+    TCHAR msg[128];
+    _stprintf_s(msg, TEXT("%d unsaved tab%s detected."),
+        count, (count == 1 ? TEXT("") : TEXT("s")));
+
+    ::MessageBox(nullptr, msg, TEXT("Unsaved Tabs"), MB_OK | MB_ICONINFORMATION);
 }
