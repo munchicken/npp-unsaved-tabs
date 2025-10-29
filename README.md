@@ -16,7 +16,7 @@ It adds a small command under **Plugins → Unsaved Tabs** that:
 1. Download the latest release from  
    **[Releases](https://github.com/Munchicken/npp-unsaved-tabs/releases)**  
 2. Extract the ZIP so you have:
-%AppData%\Notepad++\plugins\UnsavedTabs\UnsavedTabs.dll
+C:\Program Files\Notepad++\plugins\UnsavedTabs\UnsavedTabs.dll (Notepadd++ --> Plugins menu --> Open plugins folder)
 
 3. Restart Notepad++.  
 The plugin will appear under **Plugins → Unsaved Tabs**.
@@ -27,14 +27,13 @@ The plugin will appear under **Plugins → Unsaved Tabs**.
 
 Prerequisites  
 - Visual Studio 2019 or 2022 (with “Desktop development with C++”)  
-- C++17 or later  
-- The official Notepad++ plugin template → <https://github.com/npp-plugins/plugintemplate>
+- C++17 or later
 
 Steps  
 ```
 git clone https://github.com/Munchicken/npp-unsaved-tabs.git
 cd npp-unsaved-tabs
-# open npp-unsaved-tabs\vs.proj\npp-unsaved-tabs.vcxproj in Visual Studio
+# open npp-unsaved-tabs\vs.proj\npp_unsaved_tabs.vcxproj in Visual Studio
 # Build → Release | x64
 The compiled DLL will be in npp-unsaved-tabs\vs.proj\x64\Release\UnsavedTabs.dll.
 ```

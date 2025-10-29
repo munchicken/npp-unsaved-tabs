@@ -21,7 +21,9 @@
 //
 // All difinitions of plugin interface
 //
+#pragma once
 #include "PluginInterface.h"
+#include <unordered_set>
 
 //-------------------------------------//
 //-- STEP 1. DEFINE YOUR PLUGIN NAME --//
@@ -36,7 +38,7 @@ const TCHAR NPP_PLUGIN_NAME[] = TEXT("Unsaved Tabs");
 //
 // Here define the number of your plugin commands
 //
-const int nbFunc = 1;
+const int nbFunc = 2;
 
 
 //
@@ -71,5 +73,13 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 // Your plugin command functions
 //
 void cmdShowUnsavedTabsTest();
+extern std::unordered_set<INT_PTR> g_dirty;
+void handleUnsavedTabsNotifications(SCNotification* notify);
+void pluginInit(HANDLE hModule);
+void pluginCleanUp();
+void commandMenuInit();
+void commandMenuCleanUp();
+void cmdShowUnsavedTabsCount();
+int  getUnsavedTabsCount();
 
 #endif //PLUGINDEFINITION_H

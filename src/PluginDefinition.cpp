@@ -17,7 +17,13 @@
 
 #include "PluginDefinition.h"
 #include "menuCmdID.h"
+#include "Notepad_plus_msgs.h"
+#include "Scintilla.h"
 #include <windows.h>
+#include <tchar.h>
+#include <unordered_set>
+
+std::unordered_set<INT_PTR> g_dirty;   // Track all unsaved buffers
 
 //
 // The plugin data that Notepad++ needs
@@ -59,7 +65,8 @@ void commandMenuInit()
     //            ShortcutKey *shortcut,          // optional. Define a shortcut to trigger this command
     //            bool check0nInit                // optional. Make this menu item be checked visually
     //            );
-    setCommand(0, TEXT("Show Unsaved Tabs…"), cmdShowUnsavedTabsTest, nullptr, false);
+    setCommand(0, TEXT("Show Unsaved Tabs (Test)"), cmdShowUnsavedTabsTest, nullptr, false);
+    setCommand(1, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
 }
 
 //
@@ -99,4 +106,59 @@ void cmdShowUnsavedTabsTest()
         TEXT("Plugin loaded successfully!"),
         TEXT("Unsaved Tabs"),
         MB_OK | MB_ICONINFORMATION);
+}
+
+// ---------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------
+
+static INT_PTR getBufferId()
+{
+    return (INT_PTR)::SendMessage(nppData._nppHandle, NPPM_GETCURRENTBUFFERID, 0, 0);
+}
+
+int getUnsavedTabsCount()
+{
+    return (int)g_dirty.size();
+}
+
+// ---------------------------------------------------------------------
+// Notifications - Handle notifications sent from the exported beNotified()
+// ---------------------------------------------------------------------
+
+void handleUnsavedTabsNotifications(SCNotification* notify)
+{
+    switch (notify->nmhdr.code)
+    {
+    case NPPN_SNAPSHOTDIRTYFILELOADED:   // red-disk unsaved files restored
+        g_dirty.insert(notify->nmhdr.idFrom);
+        break;
+
+    case SCN_SAVEPOINTLEFT:              // user typed -> dirty
+        g_dirty.insert(getBufferId());
+        break;
+
+    case SCN_SAVEPOINTREACHED:           // user saved -> clean
+    case NPPN_FILESAVED:
+    case NPPN_FILECLOSED:
+        g_dirty.erase(getBufferId());
+        break;
+
+    default:
+        break;
+    }
+}
+
+// ---------------------------------------------------------------------
+// Core command
+// ---------------------------------------------------------------------
+
+void cmdShowUnsavedTabsCount()
+{
+    int count = getUnsavedTabsCount();
+    TCHAR msg[128];
+    _stprintf_s(msg, TEXT("%d unsaved tab%s detected."),
+        count, (count == 1 ? TEXT("") : TEXT("s")));
+
+    ::MessageBox(nullptr, msg, TEXT("Unsaved Tabs"), MB_OK | MB_ICONINFORMATION);
 }

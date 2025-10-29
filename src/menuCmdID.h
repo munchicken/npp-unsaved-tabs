@@ -4,6 +4,6 @@
 // Each ID corresponds to one command in the Plugins menu.
 
 enum {
-    IDM_CMD_SHOW_UNSAVED_TABS = 0,
-    // future commands go here...
+    IDM_CMD_SHOW_UNSAVED_TABS_TEST = 0,
+    IDM_CMD_SHOW_UNSAVED_TABS_COUNT,
 };

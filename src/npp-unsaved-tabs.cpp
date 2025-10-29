@@ -68,6 +68,9 @@ extern "C" __declspec(dllexport) FuncItem * getFuncsArray(int *nbF)
 
 extern "C" __declspec(dllexport) void beNotified(SCNotification *notifyCode)
 {
+	// plugin logic reacts first
+	handleUnsavedTabsNotifications(notifyCode);
+
 	switch (notifyCode->nmhdr.code) 
 	{
 		case NPPN_SHUTDOWN:
