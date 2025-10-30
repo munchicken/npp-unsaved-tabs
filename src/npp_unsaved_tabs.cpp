@@ -20,6 +20,8 @@
 extern FuncItem funcItem[nbFunc];
 extern NppData nppData;
 
+// Global plugin instance handle
+HINSTANCE g_hModule = nullptr;
 
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD  reasonForCall, LPVOID /*lpReserved*/)
 {

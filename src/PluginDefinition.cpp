@@ -22,8 +22,13 @@
 #include <windows.h>
 #include <tchar.h>
 #include <unordered_set>
+#include "DockingFeature/npp_unsaved_tabs_panel.h"
+#include "DockingFeature/resource.h"
+#include "DockingFeature/DockingDlgInterface.h"
 
 std::unordered_set<INT_PTR> g_dirty;   // Track all unsaved buffers
+static UnsavedTabsPanel g_unsavedPanel;
+extern HINSTANCE g_hModule;
 
 //
 // The plugin data that Notepad++ needs
@@ -38,8 +43,9 @@ NppData nppData;
 //
 // Initialize your plugin data here
 // It will be called while plugin loading   
-void pluginInit(HANDLE /*hModule*/)
+void pluginInit(HANDLE hModule)
 {
+    g_hModule = (HINSTANCE)hModule;
 }
 
 //
@@ -67,6 +73,7 @@ void commandMenuInit()
     //            );
     setCommand(0, TEXT("Show Unsaved Tabs (Test)"), cmdShowUnsavedTabsTest, nullptr, false);
     setCommand(1, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
+    setCommand(2, TEXT("Show Unsaved Tabs Panel"), showUnsavedPanel, nullptr, false);
 }
 
 //
@@ -122,6 +129,48 @@ int getUnsavedTabsCount()
     return (int)g_dirty.size();
 }
 
+void showUnsavedPanel()
+{
+    if (!g_unsavedPanel.isCreated())
+    {
+        g_unsavedPanel.init(g_hModule, nppData._nppHandle);
+        ::MessageBox(nullptr, TEXT("About to call g_unsavedPanel.create"), TEXT("Debug"), MB_OK);
+        
+        // Prepare docking data first (zero-init)
+        tTbData data{};
+        // Pass address of data to create() so it can fill fields safely
+        g_unsavedPanel.create(&data, false);
+        ::MessageBox(nullptr, TEXT("Panel created successfully!"), TEXT("Debug"), MB_OK);
+
+        // Prepare docking data
+        data.dlgID = IDD_UNSAVEDTABS_PANEL;
+        data.uMask = DWS_DF_CONT_RIGHT;
+        data.hIconTab = nullptr;      // optional: load icon later
+        data.pszAddInfo = nullptr;      // optional
+        data.pszModuleName = g_unsavedPanel.getPluginFileName();
+
+        // Register with Notepad++
+        ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
+    }
+
+    // Show/bring to front and update
+    g_unsavedPanel.display();   // show or bring to front
+    updateUnsavedUI();          // populate content
+}
+
+void updateUnsavedUI()
+{
+    // Collect display names for g_dirty buffers
+    std::vector<std::wstring> names;
+    for (INT_PTR bid : g_dirty)
+    {
+        TCHAR path[MAX_PATH]{};
+        ::SendMessage(nppData._nppHandle, NPPM_GETFULLPATHFROMBUFFERID, bid, (LPARAM)path);
+        names.emplace_back(path);
+    }
+    g_unsavedPanel.updateList(names, (int)names.size());
+}
+
 // ---------------------------------------------------------------------
 // Notifications - Handle notifications sent from the exported beNotified()
 // ---------------------------------------------------------------------
@@ -132,16 +181,19 @@ void handleUnsavedTabsNotifications(SCNotification* notify)
     {
     case NPPN_SNAPSHOTDIRTYFILELOADED:   // red-disk unsaved files restored
         g_dirty.insert(notify->nmhdr.idFrom);
+        updateUnsavedUI();
         break;
 
     case SCN_SAVEPOINTLEFT:              // user typed -> dirty
         g_dirty.insert(getBufferId());
+        updateUnsavedUI();
         break;
 
     case SCN_SAVEPOINTREACHED:           // user saved -> clean
     case NPPN_FILESAVED:
     case NPPN_FILECLOSED:
         g_dirty.erase(getBufferId());
+        updateUnsavedUI();
         break;
 
     default:
