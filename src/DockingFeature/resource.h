@@ -27,5 +27,12 @@
 #define	ID_GOLINE_EDIT	(IDD_PLUGINGOLINE_DEMO + 1)
 #define	ID_UGO_STATIC  (IDD_PLUGINGOLINE_DEMO + 5)
 
+// ============================================================================
+//  Unsaved Tabs Panel
+// ============================================================================
+#define IDD_UNSAVEDTABS_PANEL        2600
+#define IDC_UNSAVED_LIST             (IDD_UNSAVEDTABS_PANEL + 1)
+
+
 #endif // RESOURCE_H
 

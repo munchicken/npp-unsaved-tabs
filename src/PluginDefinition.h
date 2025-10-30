@@ -38,7 +38,7 @@ const TCHAR NPP_PLUGIN_NAME[] = TEXT("Unsaved Tabs");
 //
 // Here define the number of your plugin commands
 //
-const int nbFunc = 2;
+const int nbFunc = 3;
 
 
 //
@@ -81,5 +81,7 @@ void commandMenuInit();
 void commandMenuCleanUp();
 void cmdShowUnsavedTabsCount();
 int  getUnsavedTabsCount();
+void updateUnsavedUI();
+void showUnsavedPanel();
 
 #endif //PLUGINDEFINITION_H
