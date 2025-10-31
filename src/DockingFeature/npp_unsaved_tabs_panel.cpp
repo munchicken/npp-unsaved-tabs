@@ -2,26 +2,28 @@
 #include <windows.h>
 #include <tchar.h>
 #include "resource.h"
+#include "../PluginDefinition.h"  // for nppData
 
-void UnsavedTabsPanel::updateList(const std::vector<std::wstring>& files, int count)
+void UnsavedTabsPanel::updateList(const std::vector<std::pair<INT_PTR, std::wstring>>& files)
 {
     if (!isCreated()) return;
 
+    _entries = files;
+
     // Update title
     TCHAR title[64];
-    _stprintf_s(title, TEXT("Unsaved Tabs (%d)"), count);
+    _stprintf_s(title, TEXT("Unsaved Tabs (%d)"), (int)files.size());
     ::SendMessage(_hSelf, WM_SETTEXT, 0, (LPARAM)title);
 
     // Fill the listbox (assumes the dialog has a listbox IDC_LIST1)
     HWND list = ::GetDlgItem(_hSelf, IDC_UNSAVED_LIST);
     ::SendMessage(list, LB_RESETCONTENT, 0, 0);
     for (auto& f : files)
-        ::SendMessage(list, LB_ADDSTRING, 0, (LPARAM)f.c_str());
+        ::SendMessage(list, LB_ADDSTRING, 0, (LPARAM)f.second.c_str());
 }
 
 INT_PTR CALLBACK UnsavedTabsPanel::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
-    UNREFERENCED_PARAMETER(wParam);
     UNREFERENCED_PARAMETER(lParam);
     
     switch (message)
@@ -31,13 +33,48 @@ INT_PTR CALLBACK UnsavedTabsPanel::run_dlgProc(UINT message, WPARAM wParam, LPAR
         return TRUE;
 
     case WM_COMMAND:
-        switch (LOWORD(wParam))
+        // Detect double-click in the list box
+        if (HIWORD(wParam) == LBN_DBLCLK && LOWORD(wParam) == IDC_UNSAVED_LIST)
         {
-        case IDC_UNSAVED_LIST:
-            // handle listbox clicks, etc.
-            break;
+            HWND list = ::GetDlgItem(_hSelf, IDC_UNSAVED_LIST);
+            int sel = (int)::SendMessage(list, LB_GETCURSEL, 0, 0);
+            if (sel != LB_ERR && sel < (int)_entries.size())
+            {
+                INT_PTR bufferId = _entries[sel].first;
+                if (bufferId)
+                {
+                    // Debug
+                    TCHAR msg[128];
+                    _stprintf_s(msg, TEXT("Trying to activate bufferId = %p"), (void*)bufferId);
+                    OutputDebugString(msg);
+
+                    // 1 Find its position in main view
+                    int index = (int)::SendMessage(nppData._nppHandle, NPPM_GETPOSFROMBUFFERID, (WPARAM)bufferId, 0);
+
+                    // 2 If not in main view, check secondary
+                    int view = 0;
+                    if (index == -1)
+                    {
+                        index = (int)::SendMessage(nppData._nppHandle, NPPM_GETPOSFROMBUFFERID, (WPARAM)bufferId, 1);
+                        view = 1;
+                    }
+
+                    // 3 Activate if found
+                    if (index != -1)
+                    {
+                        TCHAR buf[128];
+                        _stprintf_s(buf, TEXT("Activating bufferId %p (view=%d, index=%d)"), (void*)bufferId, view, index);
+                        OutputDebugString(buf);
+
+                        ::SendMessage(nppData._nppHandle, NPPM_ACTIVATEDOC, view, index);
+                    }
+                    else
+                    {
+                        OutputDebugString(TEXT("Buffer not found in either view\n"));
+                    }
+                }
+            }
         }
-        break;
 
     case WM_DESTROY:
         OutputDebugString(TEXT("[UnsavedTabsPanel] WM_DESTROY\n"));

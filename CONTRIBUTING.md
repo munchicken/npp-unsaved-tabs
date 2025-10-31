@@ -10,5 +10,5 @@ git push origin feature/<feature-name>
 # Open a PR from feature/<feature-name> → develop
 # After it’s merged:
 git fetch origin
-git branch -d feature/<feature-name>   # or git flow feature finish <feature-name>
+git branch -d feature/<feature-name>
 ```
