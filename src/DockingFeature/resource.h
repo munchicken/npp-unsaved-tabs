@@ -33,6 +33,13 @@
 #define IDD_UNSAVEDTABS_PANEL        2600
 #define IDC_UNSAVED_LIST             (IDD_UNSAVEDTABS_PANEL + 1)
 
+// ============================================================================
+//  About Box
+// ============================================================================
+#define IDD_ABOUT_DIALOG             2700
+#define IDC_ABOUT_TEXT               (IDD_ABOUT_DIALOG + 1)
+#define IDC_DONATE_LINK              (IDD_ABOUT_DIALOG + 2)
+
 
 #endif // RESOURCE_H
 

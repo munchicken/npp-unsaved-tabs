@@ -1,4 +1,4 @@
-//this file is part of notepad++
+﻿//this file is part of notepad++
 //Copyright (C)2022 Don HO <don.h@free.fr>
 //
 //This program is free software; you can redistribute it and/or
@@ -25,14 +25,19 @@
 #include "DockingFeature/npp_unsaved_tabs_panel.h"
 #include "DockingFeature/resource.h"
 #include "DockingFeature/DockingDlgInterface.h"
+#include <commctrl.h>   // for SysLink, PNMLINK, NM_CLICK
+#pragma comment(lib, "comctl32.lib")  // ensure common controls are linked
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 std::unordered_set<INT_PTR> g_dirty;   // Track all unsaved buffers
 static UnsavedTabsPanel g_unsavedPanel;
 extern HINSTANCE g_hModule;
-
 static HWND g_hStatusBar = nullptr;
 static HWND g_hUnsavedLabel = nullptr;
 static bool g_showStatusBarCount = true;
+void showAboutDialog();
 
 //
 // The plugin data that Notepad++ needs
@@ -77,7 +82,8 @@ void commandMenuInit()
     //            );
     setCommand(0, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
     setCommand(1, TEXT("Show Unsaved Tabs Panel"), showUnsavedPanel, nullptr, false);
-    setCommand(3, TEXT("Show Unsaved Count in Status Bar"), toggleStatusBarCount, nullptr, true);
+    //setCommand(3, TEXT("Show Unsaved Count in Status Bar"), toggleStatusBarCount, nullptr, true);
+    setCommand(2, TEXT("About Unsaved Tabs..."), showAboutDialog, nullptr, false);
 
     // Find the real Windows status-bar control inside Notepad++
     g_hStatusBar = ::FindWindowEx(nppData._nppHandle, nullptr,
@@ -143,31 +149,43 @@ int getUnsavedTabsCount()
     return (int)g_dirty.size();
 }
 
-void showUnsavedPanel()
+INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (!g_unsavedPanel.isCreated())
+    switch (message)
     {
-        g_unsavedPanel.init(g_hModule, nppData._nppHandle);
-        
-        // Prepare docking data first (zero-init)
-        tTbData data{};
-        // Pass address of data to create() so it can fill fields safely
-        g_unsavedPanel.create(&data, false);
-
-        // Prepare docking data
-        data.dlgID = IDD_UNSAVEDTABS_PANEL;
-        data.uMask = DWS_DF_CONT_RIGHT;
-        data.hIconTab = nullptr;      // optional: load icon later
-        data.pszAddInfo = nullptr;      // optional
-        data.pszModuleName = g_unsavedPanel.getPluginFileName();
-
-        // Register with Notepad++
-        ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
+    case WM_INITDIALOG:
+    {
+        // Set the hyperlink text (SysLink expects markup)
+        HWND hLink = ::GetDlgItem(hDlg, IDC_DONATE_LINK);
+        if (hLink)
+        {
+            // Replace with your real Buy Me a Coffee URL
+            ::SendMessage(hLink, WM_SETTEXT, 0,
+                (LPARAM)L"<a href=\"https://buymeacoffee.com/munchicken\">Buy Me a Coffee ☕</a>");
+        }
+        return TRUE;
     }
 
-    // Show/bring to front and update
-    g_unsavedPanel.display();   // show or bring to front
-    updateUnsavedUI();          // populate content
+    case WM_NOTIFY:
+    {
+        LPNMHDR nmhdr = (LPNMHDR)lParam;
+        if (nmhdr->idFrom == IDC_DONATE_LINK && nmhdr->code == NM_CLICK)
+        {
+            PNMLINK pNMLink = (PNMLINK)lParam;
+            ShellExecute(NULL, L"open", pNMLink->item.szUrl, NULL, NULL, SW_SHOWNORMAL);
+        }
+        break;
+    }
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK)
+        {
+            EndDialog(hDlg, LOWORD(wParam));
+            return TRUE;
+        }
+        break;
+    }
+    return FALSE;
 }
 
 // ------------------------------------------------------------------
@@ -188,22 +206,22 @@ static void updateStatusBarCount(int count)
     }
 }
 
-void toggleStatusBarCount()
-{
-    g_showStatusBarCount = !g_showStatusBarCount;
-
-    // Update the menu checkmark
-    ::CheckMenuItem(::GetMenu(nppData._nppHandle),
-        funcItem[4]._cmdID,
-        MF_BYCOMMAND | (g_showStatusBarCount ? MF_CHECKED : MF_UNCHECKED));
-
-    // Show or hide the label window if it exists
-    if (g_hUnsavedLabel)
-    {
-        ::ShowWindow(g_hUnsavedLabel,
-            g_showStatusBarCount ? SW_SHOW : SW_HIDE);
-    }
-}
+//void toggleStatusBarCount()
+//{
+//    g_showStatusBarCount = !g_showStatusBarCount;
+//
+//    // Update the menu checkmark
+//    ::CheckMenuItem(::GetMenu(nppData._nppHandle),
+//        funcItem[4]._cmdID,
+//        MF_BYCOMMAND | (g_showStatusBarCount ? MF_CHECKED : MF_UNCHECKED));
+//
+//    // Show or hide the label window if it exists
+//    if (g_hUnsavedLabel)
+//    {
+//        ::ShowWindow(g_hUnsavedLabel,
+//            g_showStatusBarCount ? SW_SHOW : SW_HIDE);
+//    }
+//}
 
 void updateUnsavedUI()
 {
@@ -282,7 +300,7 @@ void handleUnsavedTabsNotifications(SCNotification* notify)
 }
 
 // ---------------------------------------------------------------------
-// Core command
+// Core commands
 // ---------------------------------------------------------------------
 
 void cmdShowUnsavedTabsCount()
@@ -293,4 +311,40 @@ void cmdShowUnsavedTabsCount()
         count, (count == 1 ? TEXT("") : TEXT("s")));
 
     ::MessageBox(nullptr, msg, TEXT("Unsaved Tabs"), MB_OK | MB_ICONINFORMATION);
+}
+
+void showUnsavedPanel()
+{
+    if (!g_unsavedPanel.isCreated())
+    {
+        g_unsavedPanel.init(g_hModule, nppData._nppHandle);
+
+        // Prepare docking data first (zero-init)
+        tTbData data{};
+        // Pass address of data to create() so it can fill fields safely
+        g_unsavedPanel.create(&data, false);
+
+        // Prepare docking data
+        data.dlgID = IDD_UNSAVEDTABS_PANEL;
+        data.uMask = DWS_DF_CONT_RIGHT;
+        data.hIconTab = nullptr;      // optional: load icon later
+        data.pszAddInfo = nullptr;      // optional
+        data.pszModuleName = g_unsavedPanel.getPluginFileName();
+
+        // Register with Notepad++
+        ::SendMessage(nppData._nppHandle, NPPM_DMMREGASDCKDLG, 0, (LPARAM)&data);
+    }
+
+    // Show/bring to front and update
+    g_unsavedPanel.display();   // show or bring to front
+    updateUnsavedUI();          // populate content
+}
+
+void showAboutDialog()
+{
+    ::DialogBox(
+        g_hModule,
+        MAKEINTRESOURCE(IDD_ABOUT_DIALOG),
+        nppData._nppHandle,
+        AboutDlgProc);
 }
