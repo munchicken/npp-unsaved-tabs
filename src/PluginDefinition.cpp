@@ -102,7 +102,7 @@ void commandMenuInit()
         g_hUnsavedLabel = ::CreateWindowEx(
             0, TEXT("STATIC"), TEXT("Unsaved: 0"),
             WS_CHILD | WS_VISIBLE | SS_RIGHT,
-            rc.right - 150, 2, 140, rc.bottom - 4,
+            rc.right - 0, 2, 140, rc.bottom - 10,
             g_hStatusBar, nullptr, g_hModule, nullptr);
     }
 }
