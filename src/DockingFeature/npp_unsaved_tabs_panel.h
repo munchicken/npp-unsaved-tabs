@@ -17,5 +17,8 @@ protected:
     virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 
 private:
-    std::vector<std::pair<INT_PTR, std::wstring>> _entries; // bufferID -> name
+    std::vector<std::pair<INT_PTR, std::wstring>> _entries; // bufferID -> name;
+
+public:
+    void highlightByBufferId(INT_PTR bufferId);
 };

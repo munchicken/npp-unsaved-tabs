@@ -325,6 +325,18 @@ void handleUnsavedTabsNotifications(SCNotification* notify)
         updateUnsavedUI();
         break;
 
+    case NPPN_BUFFERACTIVATED:
+    {
+        INT_PTR activatedBid = (INT_PTR)notify->nmhdr.idFrom;
+        updateUnsavedUI();
+        // Highlight the active tab in our Unsaved Tabs panel
+        if (g_unsavedPanel.isCreated())
+        {
+            g_unsavedPanel.highlightByBufferId(activatedBid);
+        }
+        break;
+    }
+
     default:
         break;
     }

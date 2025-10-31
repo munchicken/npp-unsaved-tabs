@@ -20,6 +20,10 @@ void UnsavedTabsPanel::updateList(const std::vector<std::pair<INT_PTR, std::wstr
     ::SendMessage(list, LB_RESETCONTENT, 0, 0);
     for (auto& f : files)
         ::SendMessage(list, LB_ADDSTRING, 0, (LPARAM)f.second.c_str());
+
+    INT_PTR currentBid = (INT_PTR)::SendMessage(nppData._nppHandle, NPPM_GETCURRENTBUFFERID, 0, 0);
+    highlightByBufferId(currentBid);
+
 }
 
 INT_PTR CALLBACK UnsavedTabsPanel::run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam)
@@ -82,4 +86,31 @@ INT_PTR CALLBACK UnsavedTabsPanel::run_dlgProc(UINT message, WPARAM wParam, LPAR
     }
 
     return FALSE;
+}
+
+void UnsavedTabsPanel::highlightByBufferId(INT_PTR bufferId)
+{
+    if (!isCreated())
+        return;
+
+    HWND list = ::GetDlgItem(_hSelf, IDC_UNSAVED_LIST);
+    if (!list)
+        return;
+
+    // Find the index of the buffer in our current entries
+    int sel = -1;
+    for (int i = 0; i < (int)_entries.size(); ++i)
+    {
+        if (_entries[i].first == bufferId)
+        {
+            sel = i;
+            break;
+        }
+    }
+
+    // Apply selection (or clear if not present)
+    ::SendMessage(list, LB_SETCURSEL, (WPARAM)sel, 0);
+
+    // Optional: force a repaint if you don’t immediately see the focus cue
+    ::InvalidateRect(list, nullptr, TRUE);
 }
