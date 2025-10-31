@@ -30,6 +30,10 @@ std::unordered_set<INT_PTR> g_dirty;   // Track all unsaved buffers
 static UnsavedTabsPanel g_unsavedPanel;
 extern HINSTANCE g_hModule;
 
+static HWND g_hStatusBar = nullptr;
+static HWND g_hUnsavedLabel = nullptr;
+static bool g_showStatusBarCount = true;
+
 //
 // The plugin data that Notepad++ needs
 //
@@ -73,6 +77,24 @@ void commandMenuInit()
     //            );
     setCommand(0, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
     setCommand(1, TEXT("Show Unsaved Tabs Panel"), showUnsavedPanel, nullptr, false);
+    setCommand(3, TEXT("Show Unsaved Count in Status Bar"), toggleStatusBarCount, nullptr, true);
+
+    // Find the real Windows status-bar control inside Notepad++
+    g_hStatusBar = ::FindWindowEx(nppData._nppHandle, nullptr,
+        TEXT("msctls_statusbar32"), nullptr);
+
+    if (g_hStatusBar && !g_hUnsavedLabel)
+    {
+        RECT rc{};
+        ::GetClientRect(g_hStatusBar, &rc);
+
+        // Create a child static control on the right side
+        g_hUnsavedLabel = ::CreateWindowEx(
+            0, TEXT("STATIC"), TEXT("Unsaved: 0"),
+            WS_CHILD | WS_VISIBLE | SS_RIGHT,
+            rc.right - 150, 2, 140, rc.bottom - 4,
+            g_hStatusBar, nullptr, g_hModule, nullptr);
+    }
 }
 
 //
@@ -148,6 +170,40 @@ void showUnsavedPanel()
     updateUnsavedUI();          // populate content
 }
 
+// ------------------------------------------------------------------
+// Real-time unsaved count display helpers
+// ------------------------------------------------------------------
+static void updateStatusBarCount(int count)
+{
+    if (g_hUnsavedLabel && g_showStatusBarCount)
+    {
+        TCHAR msg[64];
+        _stprintf_s(msg, TEXT("Unsaved: %d"), count);
+        ::SetWindowText(g_hUnsavedLabel, msg);
+        ::ShowWindow(g_hUnsavedLabel, SW_SHOW);
+    }
+    else if (g_hUnsavedLabel)
+    {
+        ::ShowWindow(g_hUnsavedLabel, SW_HIDE);
+    }
+}
+
+void toggleStatusBarCount()
+{
+    g_showStatusBarCount = !g_showStatusBarCount;
+
+    // Update the menu checkmark
+    ::CheckMenuItem(::GetMenu(nppData._nppHandle),
+        funcItem[4]._cmdID,
+        MF_BYCOMMAND | (g_showStatusBarCount ? MF_CHECKED : MF_UNCHECKED));
+
+    // Show or hide the label window if it exists
+    if (g_hUnsavedLabel)
+    {
+        ::ShowWindow(g_hUnsavedLabel,
+            g_showStatusBarCount ? SW_SHOW : SW_HIDE);
+    }
+}
 
 void updateUnsavedUI()
 {
@@ -186,6 +242,12 @@ void updateUnsavedUI()
     }
 
     g_unsavedPanel.updateList(orderedUnsaved);
+
+    // Count unsaved tabs
+    int count = (int)orderedUnsaved.size();
+
+    // Update displays
+    updateStatusBarCount(count);
 }
 
 
