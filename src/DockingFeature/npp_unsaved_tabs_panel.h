@@ -8,8 +8,14 @@ class UnsavedTabsPanel : public DockingDlgInterface
 {
 public:
     UnsavedTabsPanel() : DockingDlgInterface(IDD_UNSAVEDTABS_PANEL) {}
-    void updateList(const std::vector<std::wstring>& files, int count);
+    
+    // Now stores buffer IDs with names
+    void updateList(const std::vector<std::pair<INT_PTR, std::wstring>>& files);
+    void clearList() { _entries.clear(); }
 
 protected:
     virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+
+private:
+    std::vector<std::pair<INT_PTR, std::wstring>> _entries; // bufferID -> name
 };

@@ -71,9 +71,8 @@ void commandMenuInit()
     //            ShortcutKey *shortcut,          // optional. Define a shortcut to trigger this command
     //            bool check0nInit                // optional. Make this menu item be checked visually
     //            );
-    setCommand(0, TEXT("Show Unsaved Tabs (Test)"), cmdShowUnsavedTabsTest, nullptr, false);
-    setCommand(1, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
-    setCommand(2, TEXT("Show Unsaved Tabs Panel"), showUnsavedPanel, nullptr, false);
+    setCommand(0, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
+    setCommand(1, TEXT("Show Unsaved Tabs Panel"), showUnsavedPanel, nullptr, false);
 }
 
 //
@@ -107,13 +106,6 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 //----------------------------------------------//
 //-- STEP 4. DEFINE YOUR ASSOCIATED FUNCTIONS --//
 //----------------------------------------------//
-void cmdShowUnsavedTabsTest()
-{
-    ::MessageBox(nullptr,
-        TEXT("Plugin loaded successfully!"),
-        TEXT("Unsaved Tabs"),
-        MB_OK | MB_ICONINFORMATION);
-}
 
 // ---------------------------------------------------------------------
 // Helpers
@@ -134,13 +126,11 @@ void showUnsavedPanel()
     if (!g_unsavedPanel.isCreated())
     {
         g_unsavedPanel.init(g_hModule, nppData._nppHandle);
-        ::MessageBox(nullptr, TEXT("About to call g_unsavedPanel.create"), TEXT("Debug"), MB_OK);
         
         // Prepare docking data first (zero-init)
         tTbData data{};
         // Pass address of data to create() so it can fill fields safely
         g_unsavedPanel.create(&data, false);
-        ::MessageBox(nullptr, TEXT("Panel created successfully!"), TEXT("Debug"), MB_OK);
 
         // Prepare docking data
         data.dlgID = IDD_UNSAVEDTABS_PANEL;
@@ -158,18 +148,46 @@ void showUnsavedPanel()
     updateUnsavedUI();          // populate content
 }
 
+
 void updateUnsavedUI()
 {
-    // Collect display names for g_dirty buffers
-    std::vector<std::wstring> names;
-    for (INT_PTR bid : g_dirty)
+    std::vector<std::pair<INT_PTR, std::wstring>> orderedUnsaved;
+
+    // Iterate views in order: main (0) then secondary (1)
+    for (int view = 0; view < 2; ++view)
     {
-        TCHAR path[MAX_PATH]{};
-        ::SendMessage(nppData._nppHandle, NPPM_GETFULLPATHFROMBUFFERID, bid, (LPARAM)path);
-        names.emplace_back(path);
+        int nbFiles = (int)::SendMessage(nppData._nppHandle, NPPM_GETNBOPENFILES, 0, view);
+
+        for (int i = 0; i < nbFiles; ++i)
+        {
+            // Get buffer ID for each tab position
+            INT_PTR bid = (INT_PTR)::SendMessage(nppData._nppHandle, NPPM_GETBUFFERIDFROMPOS, i, view);
+
+            // Skip if not unsaved
+            if (g_dirty.find(bid) == g_dirty.end())
+                continue;
+
+            // Get file path or display name
+            TCHAR path[MAX_PATH]{};
+            ::SendMessage(nppData._nppHandle, NPPM_GETFULLPATHFROMBUFFERID, bid, (LPARAM)path);
+
+            if (path[0] == TEXT('\0'))
+            {
+                // Handle new/unsaved docs
+                TCHAR name[32];
+                _stprintf_s(name, TEXT("(new %d)"), i + 1);
+                orderedUnsaved.emplace_back(bid, name);
+            }
+            else
+            {
+                orderedUnsaved.emplace_back(bid, path);
+            }
+        }
     }
-    g_unsavedPanel.updateList(names, (int)names.size());
+
+    g_unsavedPanel.updateList(orderedUnsaved);
 }
+
 
 // ---------------------------------------------------------------------
 // Notifications - Handle notifications sent from the exported beNotified()

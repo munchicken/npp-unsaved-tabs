@@ -72,7 +72,6 @@ bool setCommand(size_t index, TCHAR *cmdName, PFUNCPLUGINCMD pFunc, ShortcutKey 
 //
 // Your plugin command functions
 //
-void cmdShowUnsavedTabsTest();
 extern std::unordered_set<INT_PTR> g_dirty;
 void handleUnsavedTabsNotifications(SCNotification* notify);
 void pluginInit(HANDLE hModule);
@@ -83,5 +82,6 @@ void cmdShowUnsavedTabsCount();
 int  getUnsavedTabsCount();
 void updateUnsavedUI();
 void showUnsavedPanel();
+extern NppData nppData;
 
 #endif //PLUGINDEFINITION_H
