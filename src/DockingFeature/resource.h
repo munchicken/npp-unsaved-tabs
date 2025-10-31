@@ -40,6 +40,13 @@
 #define IDC_ABOUT_TEXT               (IDD_ABOUT_DIALOG + 1)
 #define IDC_DONATE_LINK              (IDD_ABOUT_DIALOG + 2)
 
+// ============================================================================
+//  Settings Dialog
+// ============================================================================
+#define IDD_SETTINGS_DIALOG           2800
+#define IDC_CHK_STATUSBAR             (IDD_SETTINGS_DIALOG + 1)
+#define IDC_CHK_FULLPATH              (IDD_SETTINGS_DIALOG + 2)
+
 
 #endif // RESOURCE_H
 

@@ -26,6 +26,8 @@
 #include "DockingFeature/resource.h"
 #include "DockingFeature/DockingDlgInterface.h"
 #include <commctrl.h>   // for SysLink, PNMLINK, NM_CLICK
+#include <shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "comctl32.lib")  // ensure common controls are linked
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -37,7 +39,9 @@ extern HINSTANCE g_hModule;
 static HWND g_hStatusBar = nullptr;
 static HWND g_hUnsavedLabel = nullptr;
 static bool g_showStatusBarCount = true;
+static bool g_showFullPath = false;
 void showAboutDialog();
+void showSettingsDialog();
 
 //
 // The plugin data that Notepad++ needs
@@ -82,8 +86,8 @@ void commandMenuInit()
     //            );
     setCommand(0, TEXT("Check Unsaved Tabs Count"), cmdShowUnsavedTabsCount, nullptr, false);
     setCommand(1, TEXT("Show Unsaved Tabs Panel"), showUnsavedPanel, nullptr, false);
-    //setCommand(3, TEXT("Show Unsaved Count in Status Bar"), toggleStatusBarCount, nullptr, true);
     setCommand(2, TEXT("About Unsaved Tabs..."), showAboutDialog, nullptr, false);
+    setCommand(3, TEXT("Settings..."), showSettingsDialog, nullptr, false);
 
     // Find the real Windows status-bar control inside Notepad++
     g_hStatusBar = ::FindWindowEx(nppData._nppHandle, nullptr,
@@ -206,22 +210,43 @@ static void updateStatusBarCount(int count)
     }
 }
 
-//void toggleStatusBarCount()
-//{
-//    g_showStatusBarCount = !g_showStatusBarCount;
-//
-//    // Update the menu checkmark
-//    ::CheckMenuItem(::GetMenu(nppData._nppHandle),
-//        funcItem[4]._cmdID,
-//        MF_BYCOMMAND | (g_showStatusBarCount ? MF_CHECKED : MF_UNCHECKED));
-//
-//    // Show or hide the label window if it exists
-//    if (g_hUnsavedLabel)
-//    {
-//        ::ShowWindow(g_hUnsavedLabel,
-//            g_showStatusBarCount ? SW_SHOW : SW_HIDE);
-//    }
-//}
+INT_PTR CALLBACK SettingsDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        // Initialize checkbox states
+        ::CheckDlgButton(hDlg, IDC_CHK_STATUSBAR, g_showStatusBarCount ? BST_CHECKED : BST_UNCHECKED);
+        ::CheckDlgButton(hDlg, IDC_CHK_FULLPATH, g_showFullPath ? BST_CHECKED : BST_UNCHECKED);
+        return TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDOK:
+            g_showStatusBarCount = (::IsDlgButtonChecked(hDlg, IDC_CHK_STATUSBAR) == BST_CHECKED);
+            g_showFullPath = (::IsDlgButtonChecked(hDlg, IDC_CHK_FULLPATH) == BST_CHECKED);
+
+            // Apply changes immediately
+            if (g_hUnsavedLabel)
+                ::ShowWindow(g_hUnsavedLabel, g_showStatusBarCount ? SW_SHOW : SW_HIDE);
+
+            // Refresh panel list display
+            updateUnsavedUI();
+
+            EndDialog(hDlg, IDOK);
+            return TRUE;
+
+        case IDCANCEL:
+            EndDialog(hDlg, IDCANCEL);
+            return TRUE;
+        }
+        break;
+    }
+    return FALSE;
+}
 
 void updateUnsavedUI()
 {
@@ -250,11 +275,17 @@ void updateUnsavedUI()
                 // Handle new/unsaved docs
                 TCHAR name[32];
                 _stprintf_s(name, TEXT("(new %d)"), i + 1);
-                orderedUnsaved.emplace_back(bid, name);
+                if (g_showFullPath)
+                    orderedUnsaved.emplace_back(bid, path);
+                else
+                    orderedUnsaved.emplace_back(bid, ::PathFindFileName(path));
             }
             else
             {
-                orderedUnsaved.emplace_back(bid, path);
+                if (g_showFullPath)
+                    orderedUnsaved.emplace_back(bid, path);
+                else
+                    orderedUnsaved.emplace_back(bid, ::PathFindFileName(path));
             }
         }
     }
@@ -347,4 +378,12 @@ void showAboutDialog()
         MAKEINTRESOURCE(IDD_ABOUT_DIALOG),
         nppData._nppHandle,
         AboutDlgProc);
+}
+
+void showSettingsDialog()
+{
+    ::DialogBox(g_hModule,
+        MAKEINTRESOURCE(IDD_SETTINGS_DIALOG),
+        nppData._nppHandle,
+        SettingsDlgProc);
 }

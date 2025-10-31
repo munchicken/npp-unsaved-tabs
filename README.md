@@ -6,7 +6,10 @@ with unsaved changes — no more losing track of quick notes or half-written scr
 It adds a small command under **Plugins -> Unsaved Tabs** that:
 
 - Displays the number of unsaved documents  
-- Lets you open a docked panel listing each unsaved file  
+- Lets you open a docked panel listing each unsaved file
+- Double-click to activate unsaved tabs in panel
+- Status bar unsaved count
+- Settings to toggle status bar count and file paths in list
 - More features planned
 
 ---
@@ -36,13 +39,7 @@ cd npp-unsaved-tabs
 # Build -> Release | x64
 The compiled DLL will be in npp-unsaved-tabs\vs.proj\x64\Release\npp_unsaved_tabs.dll.
 ```
----
-## 🗺 Roadmap
-| Version | Features |
-|---------|----------|
-| v1.0.0 | Core tracking + fetch count + real-time unsaved-tabs list + Dockable panel |
-| v1.1.0 | Real-time display |
-| v1.2+ | Save, sort/filter, and settings |
+
 ---
 Created by Sarah Pierce for Hacktoberfest 2025
 
