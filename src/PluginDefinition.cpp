@@ -102,7 +102,7 @@ void commandMenuInit()
         g_hUnsavedLabel = ::CreateWindowEx(
             0, TEXT("STATIC"), TEXT("Unsaved: 0"),
             WS_CHILD | WS_VISIBLE | SS_RIGHT,
-            rc.right - 150, 2, 140, rc.bottom - 4,
+            rc.right - 0, 2, 140, rc.bottom - 10,
             g_hStatusBar, nullptr, g_hModule, nullptr);
     }
 }
@@ -324,6 +324,18 @@ void handleUnsavedTabsNotifications(SCNotification* notify)
         g_dirty.erase(getBufferId());
         updateUnsavedUI();
         break;
+
+    case NPPN_BUFFERACTIVATED:
+    {
+        INT_PTR activatedBid = (INT_PTR)notify->nmhdr.idFrom;
+        updateUnsavedUI();
+        // Highlight the active tab in our Unsaved Tabs panel
+        if (g_unsavedPanel.isCreated())
+        {
+            g_unsavedPanel.highlightByBufferId(activatedBid);
+        }
+        break;
+    }
 
     default:
         break;
